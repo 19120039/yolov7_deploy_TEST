@@ -159,7 +159,7 @@ if __name__=='__main__':
     #INPUTS for YOLOV7
     img_size=1056
     path_yolov7_weights="best_avengers.pt"
-    path_img_i="https://raw.githubusercontent.com/stevensmiley1989/STREAMLIT_YOLOV7/main/test_images/DJI_0028_fps24_frame00000040.jpg"
+    path_img_i="test.jpg"
     #INPUTS for webapp
     app.capt="Initial Image"
     app.new_yolo_model(img_size,path_yolov7_weights,path_img_i)
