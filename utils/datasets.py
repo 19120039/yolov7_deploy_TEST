@@ -93,6 +93,7 @@ def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=Fa
 
 class InfiniteDataLoader(torch.utils.data.dataloader.DataLoader):
     """ Dataloader that reuses workers
+
     Uses same syntax as vanilla DataLoader
     """
 
@@ -111,6 +112,7 @@ class InfiniteDataLoader(torch.utils.data.dataloader.DataLoader):
 
 class _RepeatSampler(object):
     """ Sampler that repeats forever
+
     Args:
         sampler (Sampler)
     """
@@ -124,17 +126,7 @@ class _RepeatSampler(object):
 
 
 class LoadImages:  # for inference
-    def __init__(self, path, img_size=640, stride=32,resize=True):
-        self.resize=resize
-        if self.resize:
-            print("SMILEY YOU ARE LOADING IMAGES at size {}".format(img_size)) #edit sjs
-        self.fps=0
-        self.count_fps=0
-        self.fps_cum=0
-        self.fps_avg=0
-        self.time_i=time.time()
-        self.time_j=time.time()
-        
+    def __init__(self, path, img_size=640, stride=32):
         p = str(Path(path).absolute())  # os-agnostic absolute path
         if '*' in p:
             files = sorted(glob.glob(p, recursive=True))  # glob
@@ -165,41 +157,6 @@ class LoadImages:  # for inference
     def __iter__(self):
         self.count = 0
         return self
-    def find_fps(self):
-        #new from sjs
-        '''This should find the fps each frame'''
-        self.time_j=time.time()
-        self.fps=1.0/(self.time_j-self.time_i)
-        self.time_i=self.time_j
-        self.fps_avg=self.find_avg_fps()
-        return self.fps,self.fps_avg
-    def find_avg_fps(self):
-        #new from sjs
-        '''This should find the avg-fps'''
-        self.count_fps+=1
-        self.fps_cum+=self.fps
-        self.fps_avg=self.fps_cum/self.count_fps
-        return self.fps_avg
-    def find_new_size(self,img0):
-        #new from sjs
-        '''This should take the mp4 video aspect ratio into account for resizing or cropping to model size resolution'''
-        try:
-            H,W,D=img0.shape
-            self.new_H=H
-            self.new_W=W
-            if self.resize:
-                if W>H:
-                    ASPECT=float(W/H)
-                    self.new_W=self.img_size
-                    self.new_H=int(self.img_size/ASPECT)
-                else:
-                    ASPECT=float(H/W)
-                    self.new_H=self.img_size
-                    self.new_W=int(self.img_size/ASPECT)
-            #print("self.new_H={},self.new_W={}".format(self.new_H,self.new_W))
-        except:
-            pass
-        return self.new_H,self.new_W
 
     def __next__(self):
         if self.count == self.nf:
@@ -210,11 +167,6 @@ class LoadImages:  # for inference
             # Read video
             self.mode = 'video'
             ret_val, img0 = self.cap.read()
-            #print('img0.shape',img0.shape)
-            #edit sjs
-            if ret_val:
-                self.new_H,self.new_W=self.find_new_size(img0)
-                img0=cv2.resize(img0,(self.new_W,self.new_H))
             if not ret_val:
                 self.count += 1
                 self.cap.release()
@@ -224,22 +176,14 @@ class LoadImages:  # for inference
                     path = self.files[self.count]
                     self.new_video(path)
                     ret_val, img0 = self.cap.read()
-                    if ret_val:
-                        #edit sjs
-                        self.new_H,self.new_W=self.find_new_size(img0)
-                        img0=cv2.resize(img0,(self.new_W,self.new_H))
-                    
 
             self.frame += 1
-            #print(f'video {self.count + 1}/{self.nf} ({self.frame}/{self.nframes}) {path}: ', end='')
-            self.fps,self.fps_avg=self.find_fps()
-            #print(f' success ({self.new_W}x{self.new_H} at {self.fps:.2f} FPS) with {self.fps_avg:.2f} AVG FPS')
+            print(f'video {self.count + 1}/{self.nf} ({self.frame}/{self.nframes}) {path}: ', end='')
 
         else:
             # Read image
             self.count += 1
             img0 = cv2.imread(path)  # BGR
-
             assert img0 is not None, 'Image Not Found ' + path
             #print(f'image {self.count}/{self.nf} {path}: ', end='')
 
@@ -320,17 +264,7 @@ class LoadWebcam:  # for inference
 
 
 class LoadStreams:  # multiple IP or RTSP cameras
-    def __init__(self, sources='streams.txt', img_size=640, stride=32,resize=True):
-        self.resize=resize
-        if self.resize:
-            print("SMILEY YOU ARE LOADING IMAGES at size {}".format(img_size)) #edit sjs
-        self.fps=0
-        self.count_fps=0
-        self.fps_cum=0
-        self.fps_avg=0
-        self.time_i=time.time()
-        self.time_j=time.time()
-
+    def __init__(self, sources='streams.txt', img_size=640, stride=32):
         self.mode = 'stream'
         self.img_size = img_size
         self.stride = stride
@@ -340,9 +274,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
                 sources = [x.strip() for x in f.read().strip().splitlines() if len(x.strip())]
         else:
             sources = [sources]
-        for source in sources:
-            if str(source).find('rtsp')!=-1:
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"]="rtsp_transport;udp" #edit sjs 8/4/2021
+
         n = len(sources)
         self.imgs = [None] * n
         self.sources = [clean_str(x) for x in sources]  # clean source names for later
@@ -350,7 +282,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
             # Start the thread to read frames from the video stream
             print(f'{i + 1}/{n}: {s}... ', end='')
             url = eval(s) if s.isnumeric() else s
-            if 'youtube.com/' in str(url) or 'youtu.be/' in str(url):  # if source is YouTube video EDIT SJS for webcam
+            if 'youtube.com/' in str(url) or 'youtu.be/' in str(url):  # if source is YouTube video
                 check_requirements(('pafy', 'youtube_dl'))
                 import pafy
                 url = pafy.new(url).getbest(preftype="mp4").url
@@ -361,11 +293,8 @@ class LoadStreams:  # multiple IP or RTSP cameras
             self.fps = cap.get(cv2.CAP_PROP_FPS) % 100
 
             _, self.imgs[i] = cap.read()  # guarantee first frame
-            #edit sjs
-            self.new_H,self.new_W=self.find_new_size(self.imgs[i])
             thread = Thread(target=self.update, args=([i, cap]), daemon=True)
-            #print(f' success ({w}x{h} at {self.fps:.2f} FPS).')
-            print(f' success ({self.new_W}x{self.new_H} at {self.fps:.2f} FPS)') #edit sjs
+            print(f' success ({w}x{h} at {self.fps:.2f} FPS).')
             thread.start()
         print('')  # newline
 
@@ -374,23 +303,6 @@ class LoadStreams:  # multiple IP or RTSP cameras
         self.rect = np.unique(s, axis=0).shape[0] == 1  # rect inference if all shapes equal
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
-    def find_new_size(self,img0):
-        #new from sjs
-        '''This should take the mp4 video aspect ratio into account for resizing or cropping to model size resolution'''
-        H,W,D=img0.shape
-        self.new_H=H
-        self.new_W=W
-        if self.resize:
-            if W>H:
-                ASPECT=float(W/H)
-                self.new_W=self.img_size
-                self.new_H=int(self.img_size/ASPECT)
-            else:
-                ASPECT=float(H/W)
-                self.new_H=self.img_size
-                self.new_W=int(self.img_size/ASPECT)
-        #print("self.new_H={},self.new_W={}".format(self.new_H,self.new_W))
-        return self.new_H,self.new_W
 
     def update(self, index, cap):
         # Read next stream frame in a daemon thread
@@ -402,16 +314,8 @@ class LoadStreams:  # multiple IP or RTSP cameras
             if n == 4:  # read every 4th frame
                 success, im = cap.retrieve()
                 self.imgs[index] = im if success else self.imgs[index] * 0
-                #edit sjs
-                self.imgs_index=cv2.resize(self.imgs[index],(self.new_W,self.new_H))
-                
                 n = 0
-            try:
-                time.sleep(1 / self.fps)  # wait time
-            except:
-                time.sleep(1 / 60.0)
-                pass
-                #print('self.fps is too short',self.fps)
+            time.sleep(1 / self.fps)  # wait time
 
     def __iter__(self):
         self.count = -1
@@ -511,7 +415,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 x[:, 0] = 0
 
         n = len(shapes)  # number of images
-        bi = np.floor(np.arange(n) / batch_size).astype(np.int)  # batch index
+        bi = np.floor(np.arange(n) / batch_size).astype(int)  # batch index
         nb = bi[-1] + 1  # number of batches
         self.batch = bi  # batch index of image
         self.n = n
@@ -539,7 +443,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 elif mini > 1:
                     shapes[i] = [1, 1 / mini]
 
-            self.batch_shapes = np.ceil(np.array(shapes) * img_size / stride + pad).astype(np.int) * stride
+            self.batch_shapes = np.ceil(np.array(shapes) * img_size / stride + pad).astype(int) * stride
 
         # Cache images into memory for faster training (WARNING: large datasets may exceed system RAM)
         self.imgs = [None] * n
@@ -1296,7 +1200,7 @@ def pastein(image, labels, sample_labels, sample_images, sample_masks):
                 r_image = cv2.resize(sample_images[sel_ind], (r_w, r_h))
                 temp_crop = image[ymin:ymin+r_h, xmin:xmin+r_w]
                 m_ind = r_mask > 0
-                if m_ind.astype(np.int).sum() > 60:
+                if m_ind.astype(np.int32).sum() > 60:
                     temp_crop[m_ind] = r_image[m_ind]
                     #print(sample_labels[sel_ind])
                     #print(sample_images[sel_ind].shape)
