@@ -159,7 +159,7 @@ if __name__=='__main__':
     #INPUTS for YOLOV7
     img_size=1056
     path_yolov7_weights="best_avengers.pt"
-    path_img_i="test.jpg"
+    path_img_i="https://cdn.vox-cdn.com/thumbor/psrqHxtmGZMyFjZ68Hn_1FhFSXM=/0x0:3805x2047/1820x1024/filters:focal(1157x817:1765x1425):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/70416979/avengers_battle_of_new_york.0.jpg"
     #INPUTS for webapp
     app.capt="Initial Image"
     app.new_yolo_model(img_size,path_yolov7_weights,path_img_i)
