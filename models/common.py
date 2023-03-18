@@ -236,7 +236,7 @@ class Res(nn.Module):
 class ResX(Res):
     # ResNet bottleneck
     def __init__(self, c1, c2, shortcut=True, g=32, e=0.5):  # ch_in, ch_out, shortcut, groups, expansion
-        super().__init__(c1, c2, shortcu, g, e)
+        super().__init__(c1, c2, shortcut, g, e)
         c_ = int(c2 * e)  # hidden channels
 
 
@@ -444,7 +444,7 @@ class ImplicitA(nn.Module):
     
 
 class ImplicitM(nn.Module):
-    def __init__(self, channel, mean=0., std=.02):
+    def __init__(self, channel, mean=1., std=.02):
         super(ImplicitM, self).__init__()
         self.channel = channel
         self.mean = mean
